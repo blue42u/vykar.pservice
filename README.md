@@ -30,15 +30,21 @@ along with a `SHA256SUMS` manifest for `systemd-sysupdate`:
 - `vykar_<version>_<arch>.sysext.raw`
 - `vykar_<version>_<arch>.raw` (portable)
 
-Tag releases `<vykar version>` (e.g. `0.20.1`), or `<vykar version>-<N>`
-(e.g. `0.20.1-1`) for packaging-only changes. The tag becomes the image
-version, and `0.20.1 < 0.20.1-1 < 0.20.1-2 < 0.20.2` so sysupdate sees each
-release as newer. CI rejects tags that don't match `mkosi.version`.
+Tag releases `<vykar version>-<N>`, starting at `-0` for each new vykar version
+and counting up for packaging-only changes. Pre-releases use a lettered suffix
+such as `-alpha.1` or `-rc.0`, published as GitHub pre-releases. The tag becomes
+the image version, and these sort as
+`0.20.1-alpha.1 < 0.20.1-rc.0 < 0.20.1-0 < 0.20.1-1 < 0.20.2-0`, so sysupdate
+sees each release as newer. CI rejects tags that don't start with
+`<mkosi.version>-`.
+
+A bare `<vykar version>` sorts below all of its suffixed versions, so don't use
+it for releases.
 
 Each image has a GitHub build provenance attestation:
 
 ```sh
-gh attestation verify vykar_0.20.1_x86-64.sysext.raw --repo <owner>/vykar.pservice
+gh attestation verify vykar_0.20.1-0_x86-64.sysext.raw --repo <owner>/vykar.pservice
 ```
 
 The examples below install these into `.v/` directories. systemd then uses the
@@ -53,7 +59,7 @@ runs as an ordinary host service with full access to the host: all files, host
 tools for `hooks`/`command_dumps`/`passcommand`, `~/.ssh`, and so on.
 
 ```sh
-sudo install -Dm0644 -t /var/lib/extensions/vykar.sysext.raw.v/ vykar_0.20.1_x86-64.sysext.raw
+sudo install -Dm0644 -t /var/lib/extensions/vykar.sysext.raw.v/ vykar_0.20.1-0_x86-64.sysext.raw
 sudo systemd-sysext refresh
 ```
 
@@ -108,7 +114,7 @@ Attach with the `trusted` profile. The `default` profile's `PrivateUsers=`
 hides the ownership of other users' files, so a system backup can't read them.
 
 ```sh
-sudo install -Dm0644 -t /var/lib/portables/vykar.raw.v/ vykar_0.20.1_x86-64.raw
+sudo install -Dm0644 -t /var/lib/portables/vykar.raw.v/ vykar_0.20.1-0_x86-64.raw
 sudo portablectl attach --profile=trusted --enable --now /var/lib/portables/vykar.raw.v
 ```
 
@@ -154,4 +160,4 @@ Bump `mkosi.version` and replace `SHA256SUMS` with the checksums of the new
 `*-unknown-linux-musl.tar.gz` release assets (shown as `digest` on the GitHub
 release assets). `mkosi.sync` downloads the tarball into `downloads/` and fails
 if the checksum for the architecture being built is missing or doesn't match.
-Then publish a release tagged `<new version>`.
+Then publish a release tagged `<new version>-0`.
