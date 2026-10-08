@@ -11,10 +11,20 @@ ExecReload=kill -HUP $MAINPID
 Restart=on-failure
 RestartSec=60
 
-# vykar follows XDG: keep its file cache and scheduler lock in managed dirs.
 CacheDirectory=vykar
+Environment=XDG_CACHE_HOME=%C
 StateDirectory=vykar
-Environment=XDG_CACHE_HOME=/var/cache XDG_CONFIG_HOME=/var/lib
+
+# NB: Redirect the scheduler lock (under XDG_CONFIG_HOME) to the state directory
+Environment=XDG_CONFIG_HOME=%S
+
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
 
 [Install]
 WantedBy=multi-user.target

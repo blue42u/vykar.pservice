@@ -9,5 +9,19 @@ ExecReload=kill -HUP $MAINPID
 Restart=on-failure
 RestartSec=60
 
+CacheDirectory=vykar
+StateDirectory=vykar
+
+# NB: Redirect the scheduler lock (under XDG_CONFIG_HOME) to the state directory
+Environment=XDG_CONFIG_HOME=%S
+
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+
 [Install]
 WantedBy=default.target
