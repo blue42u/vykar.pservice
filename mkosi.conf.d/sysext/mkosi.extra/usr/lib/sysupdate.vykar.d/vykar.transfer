@@ -9,11 +9,11 @@ Verify=no
 [Source]
 Type=url-file
 Path=https://github.com/blue42u/vykar.pservice/releases/latest/download
-MatchPattern=vykar_@v_%a.sysext.raw
+MatchPattern=vykar_@v_%a.sysext
 
 [Target]
 Type=regular-file
-Path=/var/lib/extensions/vykar.sysext.raw.v
-MatchPattern=vykar_@v_%a.sysext.raw
+Path=/var/lib/extensions/vykar.raw.v
+MatchPattern=vykar_@v_%a.raw
 Mode=0444
 InstancesMax=2

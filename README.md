@@ -27,8 +27,12 @@ Publishing a GitHub release attaches the images to it, named per
 [systemd.v(7)](https://www.freedesktop.org/software/systemd/man/latest/systemd.v.html),
 along with a `SHA256SUMS` manifest for `systemd-sysupdate`:
 
-- `vykar_<version>_<arch>.sysext.raw`
-- `vykar_<version>_<arch>.raw` (portable)
+- `vykar_<version>_<arch>.sysext`
+- `vykar_<version>_<arch>.pservice` (portable)
+
+Both are raw disk images. They are installed as `vykar_<version>_<arch>.raw`;
+the target directory (`/var/lib/extensions` or `/var/lib/portables`) decides
+how systemd uses them.
 
 Tag releases `<vykar version>-<N>`, starting at `-0` for each new vykar version
 and counting up for packaging-only changes. Pre-releases use a lettered suffix
@@ -44,13 +48,13 @@ it for releases.
 Each image has a GitHub build provenance attestation:
 
 ```sh
-gh attestation verify vykar_0.20.1-0_x86-64.sysext.raw --repo <owner>/vykar.pservice
+gh attestation verify vykar_0.20.1-0_x86-64.sysext --repo <owner>/vykar.pservice
 ```
 
 The examples below install these into `.v/` directories. systemd then uses the
 newest version for the local architecture, so updating just means adding a file.
-For local builds, copy `mkosi.output/<format>/vykar.raw` in under the same naming
-scheme.
+For local builds, copy `mkosi.output/<format>/vykar.raw` in as
+`vykar_<version>_<arch>.raw`.
 
 ## sysext
 
@@ -59,7 +63,7 @@ runs as an ordinary host service with full access to the host: all files, host
 tools for `hooks`/`command_dumps`/`passcommand`, `~/.ssh`, and so on.
 
 ```sh
-sudo install -Dm0644 -t /var/lib/extensions/vykar.sysext.raw.v/ vykar_0.20.1-0_x86-64.sysext.raw
+sudo install -Dm0644 vykar_0.20.1-0_x86-64.sysext /var/lib/extensions/vykar.raw.v/vykar_0.20.1-0_x86-64.raw
 sudo systemd-sysext refresh
 ```
 
@@ -114,7 +118,7 @@ Attach with the `trusted` profile. The `default` profile's `PrivateUsers=`
 hides the ownership of other users' files, so a system backup can't read them.
 
 ```sh
-sudo install -Dm0644 -t /var/lib/portables/vykar.raw.v/ vykar_0.20.1-0_x86-64.raw
+sudo install -Dm0644 vykar_0.20.1-0_x86-64.pservice /var/lib/portables/vykar.raw.v/vykar_0.20.1-0_x86-64.raw
 sudo portablectl attach --profile=trusted --enable --now /var/lib/portables/vykar.raw.v
 ```
 
@@ -136,7 +140,7 @@ Verify=no
 [Source]
 Type=url-file
 Path=https://github.com/blue42u/vykar.pservice/releases/latest/download
-MatchPattern=vykar_@v_%a.raw
+MatchPattern=vykar_@v_%a.pservice
 
 [Target]
 Type=regular-file
