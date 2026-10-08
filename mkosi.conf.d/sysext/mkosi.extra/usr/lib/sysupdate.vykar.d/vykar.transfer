@@ -1,0 +1,19 @@
+# Updates this extension in place: systemd-sysupdate --component=vykar update
+# The new version is picked up on the next systemd-sysext refresh or reboot.
+
+[Transfer]
+# GitHub releases carry no SHA256SUMS.gpg. Downloads are still checked against
+# SHA256SUMS, which is fetched over HTTPS from the latest release.
+Verify=no
+
+[Source]
+Type=url-file
+Path=https://github.com/blue42u/vykar.pservice/releases/latest/download
+MatchPattern=vykar_@v_%a.sysext.raw
+
+[Target]
+Type=regular-file
+Path=/var/lib/extensions/vykar.sysext.raw.v
+MatchPattern=vykar_@v_%a.sysext.raw
+Mode=0444
+InstancesMax=2

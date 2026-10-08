@@ -23,6 +23,22 @@ jobs:
       - uses: actions/checkout@v7
       - uses: systemd/mkosi@v27.1
 
+      # Releases are tagged <vykar version>[-<packaging revision>], and the
+      # tag becomes the image version so packaging-only releases still sort
+      # newer for systemd-sysupdate.
+      - name: Determine image version
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          version="$(cat mkosi.version)"
+          if [ "$GITHUB_EVENT_NAME" = release ]; then
+            case "$TAG" in
+              "$version" | "$version"-[0-9]*) version="$TAG" ;;
+              *) echo "::error::Tag $TAG does not match $version[-N]"; exit 1 ;;
+            esac
+          fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+
       # Use mkosi's default tools tree rather than the runner's systemd-repart
       # and mkfs tools, which may be old or missing.
       # Asset names follow systemd.v(7) so they can be dropped into .v/ directories.
@@ -30,12 +46,11 @@ jobs:
         env:
           ARCH: ${{ matrix.arch }}
         run: |
-          version="$(cat mkosi.version)"
           mkdir dist
-          mkosi --tools-tree=default -t sysext -f build
-          mv mkosi.output/sysext/vykar.raw "dist/vykar_${version}_${ARCH}.sysext.raw"
-          mkosi --tools-tree=default -t portable -f build
-          mv mkosi.output/portable/vykar.raw "dist/vykar_${version}_${ARCH}.raw"
+          mkosi --tools-tree=default --image-version="$VERSION" -t sysext -f build
+          mv mkosi.output/sysext/vykar.raw "dist/vykar_${VERSION}_${ARCH}.sysext.raw"
+          mkosi --tools-tree=default --image-version="$VERSION" -t portable -f build
+          mv mkosi.output/portable/vykar.raw "dist/vykar_${VERSION}_${ARCH}.raw"
 
       - uses: actions/upload-artifact@v7
         with:
@@ -57,13 +72,21 @@ jobs:
           path: dist
           merge-multiple: true
 
+      # systemd-sysupdate discovers versions through this manifest.
+      - name: Generate SHA256SUMS
+        working-directory: dist
+        run: sha256sum --binary *.raw > SHA256SUMS
+
       - uses: actions/attest@v4
         with:
           subject-path: dist/*.raw
 
+      # SHA256SUMS goes last so it never lists files that aren't uploaded yet.
       - name: Upload release assets
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           TAG: ${{ github.event.release.tag_name }}
-        run: gh release upload "$TAG" dist/*.raw
+        run: |
+          gh release upload "$TAG" dist/*.raw
+          gh release upload "$TAG" dist/SHA256SUMS

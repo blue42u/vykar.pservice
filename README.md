@@ -24,10 +24,16 @@ see the [vykar daemon docs](https://vykar.borgbase.com/daemon.html).
 
 CI builds both formats for x86-64 and arm64 on every push and pull request.
 Publishing a GitHub release attaches the images to it, named per
-[systemd.v(7)](https://www.freedesktop.org/software/systemd/man/latest/systemd.v.html):
+[systemd.v(7)](https://www.freedesktop.org/software/systemd/man/latest/systemd.v.html),
+along with a `SHA256SUMS` manifest for `systemd-sysupdate`:
 
 - `vykar_<version>_<arch>.sysext.raw`
 - `vykar_<version>_<arch>.raw` (portable)
+
+Tag releases `<vykar version>` (e.g. `0.20.1`), or `<vykar version>-<N>`
+(e.g. `0.20.1-1`) for packaging-only changes. The tag becomes the image
+version, and `0.20.1 < 0.20.1-1 < 0.20.1-2 < 0.20.2` so sysupdate sees each
+release as newer. CI rejects tags that don't match `mkosi.version`.
 
 Each image has a GitHub build provenance attestation:
 
@@ -68,6 +74,29 @@ sudo systemctl try-restart vykar
 systemctl --user try-restart vykar
 ```
 
+### Updates with systemd-sysupdate
+
+The extension ships its own transfer definition as the `vykar` component
+(`/usr/lib/sysupdate.vykar.d/vykar.transfer`). It downloads the newest image
+from this repository's latest GitHub release into the `.v/` directory above and
+keeps the previous version around:
+
+```sh
+sudo systemd-sysupdate --component=vykar list
+sudo systemd-sysupdate --component=vykar update
+```
+
+Only the download is automated. The new version is used after the next
+`systemd-sysext refresh`, which normally means the next reboot.
+
+The stock `systemd-sysupdate-update.timer` covers all components only from
+systemd 262 (`update --component-all`). Older versions update just the
+component-less `sysupdate.d/` set, so run the command above yourself.
+
+GitHub releases have no `SHA256SUMS.gpg`, so the transfer uses `Verify=no`.
+Downloads are still checked against `SHA256SUMS`, fetched over HTTPS, but
+sysupdate does not check the GitHub attestations.
+
 ## Portable service
 
 The image contains only the static binary, so the service sees the host only
@@ -89,6 +118,28 @@ For a user instance, keep the `.v/` directory somewhere you own (for example
 `~/.local/share/portables/vykar.raw.v/`) and use `portablectl --user` with its
 absolute path.
 
+The image can't carry a transfer definition for the host, so to download
+updates with `systemd-sysupdate --component=vykar-portable update`, add this as
+`/etc/sysupdate.vykar-portable.d/vykar.transfer` (see the sysext section for
+`Verify=no` and timer caveats):
+
+```ini
+[Transfer]
+Verify=no
+
+[Source]
+Type=url-file
+Path=https://github.com/blue42u/vykar.pservice/releases/latest/download
+MatchPattern=vykar_@v_%a.raw
+
+[Target]
+Type=regular-file
+Path=/var/lib/portables/vykar.raw.v
+MatchPattern=vykar_@v_%a.raw
+Mode=0444
+InstancesMax=2
+```
+
 Limitations compared to the sysext:
 
 - There is no shell or other tools in the image, so `hooks`, `command_dumps`
@@ -103,3 +154,4 @@ Bump `mkosi.version` and replace `SHA256SUMS` with the checksums of the new
 `*-unknown-linux-musl.tar.gz` release assets (shown as `digest` on the GitHub
 release assets). `mkosi.sync` downloads the tarball into `downloads/` and fails
 if the checksum for the architecture being built is missing or doesn't match.
+Then publish a release tagged `<new version>`.
