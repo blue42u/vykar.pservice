@@ -1,0 +1,69 @@
+name: Build
+
+on:
+  push:
+  pull_request:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            arch: x86-64
+          - runner: ubuntu-24.04-arm
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: systemd/mkosi@v27.1
+
+      # Use mkosi's default tools tree rather than the runner's systemd-repart
+      # and mkfs tools, which may be old or missing.
+      # Asset names follow systemd.v(7) so they can be dropped into .v/ directories.
+      - name: Build images
+        env:
+          ARCH: ${{ matrix.arch }}
+        run: |
+          version="$(cat mkosi.version)"
+          mkdir dist
+          mkosi --tools-tree=default -t sysext -f build
+          mv mkosi.output/sysext/vykar.raw "dist/vykar_${version}_${ARCH}.sysext.raw"
+          mkosi --tools-tree=default -t portable -f build
+          mv mkosi.output/portable/vykar.raw "dist/vykar_${version}_${ARCH}.raw"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: vykar-${{ matrix.arch }}
+          path: dist/
+          if-no-files-found: error
+
+  release:
+    if: github.event_name == 'release'
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          path: dist
+          merge-multiple: true
+
+      - uses: actions/attest@v4
+        with:
+          subject-path: dist/*.raw
+
+      - name: Upload release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: gh release upload "$TAG" dist/*.raw
