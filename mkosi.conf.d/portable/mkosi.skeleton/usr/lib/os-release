@@ -1,0 +1,5 @@
+NAME="Vykar"
+ID=vykar
+HOME_URL="https://vykar.borgbase.com/"
+PORTABLE_PREFIXES=vykar
+PORTABLE_SCOPE=any

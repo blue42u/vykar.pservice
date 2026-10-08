@@ -1,0 +1,13 @@
+[Unit]
+Description=Vykar backup daemon
+Documentation=https://vykar.borgbase.com/daemon.html
+ConditionPathExists=%E/vykar/config.yaml
+
+[Service]
+ExecStart=/usr/bin/vykar --config %E/vykar/config.yaml daemon
+ExecReload=kill -HUP $MAINPID
+Restart=on-failure
+RestartSec=60
+
+[Install]
+WantedBy=default.target

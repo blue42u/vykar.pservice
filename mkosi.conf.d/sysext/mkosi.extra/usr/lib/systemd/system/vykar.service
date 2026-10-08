@@ -1,0 +1,20 @@
+[Unit]
+Description=Vykar backup daemon
+Documentation=https://vykar.borgbase.com/daemon.html
+ConditionPathExists=%E/vykar/config.yaml
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+ExecStart=/usr/bin/vykar --config %E/vykar/config.yaml daemon
+ExecReload=kill -HUP $MAINPID
+Restart=on-failure
+RestartSec=60
+
+# vykar follows XDG: keep its file cache and scheduler lock in managed dirs.
+CacheDirectory=vykar
+StateDirectory=vykar
+Environment=XDG_CACHE_HOME=/var/cache XDG_CONFIG_HOME=/var/lib
+
+[Install]
+WantedBy=multi-user.target

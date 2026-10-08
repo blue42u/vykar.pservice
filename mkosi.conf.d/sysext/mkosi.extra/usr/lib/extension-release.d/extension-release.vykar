@@ -1,0 +1,16 @@
+# mkosi appends SYSEXT_ID, SYSEXT_VERSION_ID and ARCHITECTURE.
+
+# The payload is a static binary, so it is compatible with any host OS version.
+# This also keeps the extension applied across bootc/ostree image upgrades.
+ID=_any
+SYSEXT_SCOPE=system
+
+# Make the manager pick up (or drop) vykar.service on merge/unmerge.
+EXTENSION_RELOAD_MANAGER=1
+
+# Deliberately not set: EXTENSION_RESTART_UNITS=vykar.service (systemd >= 262).
+# - It only reaches the system manager, so user instances are not restarted.
+# - It uses RestartUnit, which also starts a service that was stopped on purpose.
+# - The boot-time merge in systemd-sysext.service (Before=sysinit.target) waits
+#   for the restart job, while vykar.service is After=sysinit.target via its
+#   default dependencies, so the two would deadlock at boot.

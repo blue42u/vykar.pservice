@@ -1,0 +1,6 @@
+#!/bin/sh
+# Install the CLI from the release tarball fetched and verified by mkosi.sync.
+set -eu
+
+mkdir -p "$DESTDIR/usr/bin"
+tar --no-same-owner -xzf "$SRCDIR/downloads/vykar-$ARCHITECTURE.tar.gz" -C "$DESTDIR/usr/bin" vykar

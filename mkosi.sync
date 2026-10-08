@@ -1,0 +1,23 @@
+#!/bin/sh
+# Download the pinned vykar release into downloads/ and verify it against SHA256SUMS.
+# mkosi does not pass $IMAGE_VERSION to sync scripts, so read mkosi.version directly.
+set -eu
+
+case "$ARCHITECTURE" in
+    x86-64) triple=x86_64-unknown-linux-musl ;;
+    arm64) triple=aarch64-unknown-linux-musl ;;
+    *) echo "Unsupported architecture: $ARCHITECTURE" >&2; exit 1 ;;
+esac
+version="$(cat "$SRCDIR/mkosi.version")"
+tarball="vykar-v$version-$triple.tar.gz"
+
+mkdir -p "$SRCDIR/downloads"
+cd "$SRCDIR/downloads"
+if [ ! -e "$tarball" ]; then
+    curl -fsSL -o "$tarball.part" "https://github.com/borgbase/vykar/releases/download/v$version/$tarball"
+    mv "$tarball.part" "$tarball"
+fi
+grep -F "  $tarball" "$SRCDIR/SHA256SUMS" | sha256sum --check --strict -
+
+# Stable name for mkosi.build, so the version and triple live only here.
+ln -sfn "$tarball" "vykar-$ARCHITECTURE.tar.gz"

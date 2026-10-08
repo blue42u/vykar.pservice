@@ -1,0 +1,19 @@
+[Unit]
+Description=Vykar backup daemon
+Documentation=https://vykar.borgbase.com/daemon.html
+ConditionPathExists=%E/vykar/config.yaml
+
+[Service]
+ExecStart=/usr/bin/vykar --config %E/vykar/config.yaml daemon
+# No ExecReload=: the image has no kill(1). Use `systemctl --user kill -s HUP vykar`.
+Restart=on-failure
+RestartSec=60
+
+# $HOME is /home/<user> on classic systems and /var/home/<user> on bootc. It
+# can't be bound directly because the read-only image has no mountpoint for it.
+BindReadOnlyPaths=/etc
+BindPaths=-/home
+BindPaths=/var
+
+[Install]
+WantedBy=default.target

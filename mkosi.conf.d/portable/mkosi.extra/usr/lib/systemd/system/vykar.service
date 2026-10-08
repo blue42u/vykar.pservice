@@ -1,0 +1,25 @@
+[Unit]
+Description=Vykar backup daemon
+Documentation=https://vykar.borgbase.com/daemon.html
+ConditionPathExists=%E/vykar/config.yaml
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+ExecStart=/usr/bin/vykar --config %E/vykar/config.yaml daemon
+# No ExecReload=: the image has no kill(1). Use `systemctl kill -s HUP vykar`.
+Restart=on-failure
+RestartSec=60
+
+# Host state worth backing up. /etc also supplies the config, CA certificates
+# and user database; /var holds homes on bootc, local repositories and caches.
+BindReadOnlyPaths=/etc
+BindPaths=/var
+
+# vykar follows XDG: keep its file cache and scheduler lock in managed dirs.
+CacheDirectory=vykar
+StateDirectory=vykar
+Environment=XDG_CACHE_HOME=/var/cache XDG_CONFIG_HOME=/var/lib
+
+[Install]
+WantedBy=multi-user.target

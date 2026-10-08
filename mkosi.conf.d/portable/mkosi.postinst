@@ -1,0 +1,7 @@
+#!/bin/sh
+# The image is read-only, so every path portabled or the units mount over must already exist.
+set -eu
+
+cd "$BUILDROOT"
+mkdir -p dev etc home proc run sys tmp var/tmp
+touch etc/machine-id etc/resolv.conf
