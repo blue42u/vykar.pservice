@@ -1,5 +1,7 @@
 # vykar.pservice
 
+> ⚠️ This repository, including the documentation below, is entirely AI slop and barely tested. USE AT YOUR OWN RISK. ⚠️
+
 [mkosi](https://github.com/systemd/mkosi) configuration that packages the
 upstream [vykar](https://github.com/borgbase/vykar) release binary as a
 systemd service, in either of two formats:
