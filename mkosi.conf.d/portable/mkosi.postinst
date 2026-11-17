@@ -5,3 +5,10 @@ set -eu
 cd "$BUILDROOT"
 mkdir -p dev etc home proc run sys tmp var/tmp
 touch etc/machine-id etc/resolv.conf
+
+# mkosi always creates /boot and /efi as mode 0500 ESP/XBOOTLDR mountpoints.
+# For user portable services, systemd-mountfsd maps the image's root to an
+# unprivileged UID range, so the dissect code can't open them to check whether
+# they are empty and the whole mount fails with EACCES. A portable service has
+# no use for either, and a missing /boot is fine.
+rm -rf boot efi
