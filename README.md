@@ -125,7 +125,7 @@ sudo portablectl attach --profile=trusted --enable --now /var/lib/portables/vyka
 The `.v/` path is resolved when the image is attached, so after adding a new
 version run `sudo portablectl reattach --now /var/lib/portables/vykar.raw.v`.
 For a user instance, keep the `.v/` directory somewhere you own (for example
-`~/.local/share/portables/vykar.raw.v/`) and use `portablectl --user` with its
+`~/.local/lib/portables/vykar.raw.v/`) and use `portablectl --user` with its
 absolute path.
 
 The image can't carry a transfer definition for the host, so to download
