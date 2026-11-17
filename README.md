@@ -51,6 +51,35 @@ Each image has a GitHub build provenance attestation:
 gh attestation verify vykar_0.20.1-0_x86-64.sysext --repo <owner>/vykar.pservice
 ```
 
+### Verity signing
+
+Release images contain a dm-verity hash partition and a signature partition,
+signed with the key matching [`mkosi.crt`](mkosi.crt). systemd trusts the image
+once that certificate is installed on the host:
+
+```sh
+sudo install -Dm0644 mkosi.crt /etc/verity.d/vykar.pservice.crt
+```
+
+Images under `/var/lib/portables` or `/var/lib/extensions` are trusted anyway
+because of where they are. The certificate matters for images elsewhere, in
+particular user portable services, which `systemd-mountfsd` only mounts
+without a polkit prompt if they are signed by a trusted key.
+
+CI signs with the `VERITY_KEY` repository secret and refuses to publish a
+release without it. Builds without the secret, such as pull requests from forks
+and local builds, have no signature. To set up or rotate the key:
+
+```sh
+openssl req -new -x509 -newkey rsa:4096 -nodes -days 3650 \
+    -subj "/CN=vykar.pservice verity signing" -keyout mkosi.key -out mkosi.crt
+gh secret set VERITY_KEY < mkosi.key
+git add mkosi.crt   # mkosi.key is gitignored; keep it safe or delete it
+```
+
+mkosi picks up `mkosi.key` and `mkosi.crt` from the repository root, so local
+builds are signed too while the key is there.
+
 The examples below install these into `.v/` directories. systemd then uses the
 newest version for the local architecture, so updating just means adding a file.
 For local builds, copy `mkosi.output/<format>/vykar.raw` in as
@@ -126,7 +155,8 @@ The `.v/` path is resolved when the image is attached, so after adding a new
 version run `sudo portablectl reattach --now /var/lib/portables/vykar.raw.v`.
 For a user instance, keep the `.v/` directory somewhere you own (for example
 `~/.local/lib/portables/vykar.raw.v/`) and use `portablectl --user` with its
-absolute path.
+absolute path. Install the signing certificate first (see
+[Verity signing](#verity-signing)), or `systemd-mountfsd` won't trust the image.
 
 The image can't carry a transfer definition for the host, so to download
 updates with `systemd-sysupdate --component=vykar-portable update`, add this as

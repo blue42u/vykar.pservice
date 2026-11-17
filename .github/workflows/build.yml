@@ -39,6 +39,25 @@ jobs:
           fi
           echo "VERSION=$version" >> "$GITHUB_ENV"
 
+      # Sign the dm-verity root hash with the key matching the committed
+      # mkosi.crt, so systemd-mountfsd trusts the images (needed for user
+      # portable services). Builds without the secret, such as pull requests
+      # from forks, still get a verity hash partition but no signature.
+      - name: Configure verity signing
+        env:
+          VERITY_KEY: ${{ secrets.VERITY_KEY }}
+        run: |
+          if [ -n "$VERITY_KEY" ]; then
+            (umask 077 && printf '%s\n' "$VERITY_KEY" > mkosi.key)
+            echo "VERITY=signed" >> "$GITHUB_ENV"
+          elif [ "$GITHUB_EVENT_NAME" = release ]; then
+            echo "::error::The VERITY_KEY secret is required to sign release images"
+            exit 1
+          else
+            echo "::warning::The VERITY_KEY secret is unavailable, so images are not signed"
+            echo "VERITY=hash" >> "$GITHUB_ENV"
+          fi
+
       # Use mkosi's default tools tree rather than the runner's systemd-repart
       # and mkfs tools, which may be old or missing.
       # Asset names follow systemd.v(7), with the image type as the suffix.
@@ -49,9 +68,9 @@ jobs:
           ARCH: ${{ matrix.arch }}
         run: |
           mkdir dist
-          mkosi --tools-tree=default --image-version="$VERSION" -t sysext -f build
+          mkosi --tools-tree=default --image-version="$VERSION" --verity="$VERITY" -t sysext -f build
           mv mkosi.output/sysext/vykar.raw "dist/vykar_${VERSION}_${ARCH}.sysext"
-          mkosi --tools-tree=default --image-version="$VERSION" -t portable -f build
+          mkosi --tools-tree=default --image-version="$VERSION" --verity="$VERITY" -t portable -f build
           mv mkosi.output/portable/vykar.raw "dist/vykar_${VERSION}_${ARCH}.pservice"
 
       - uses: actions/upload-artifact@v7
