@@ -21,5 +21,11 @@ CacheDirectory=vykar
 StateDirectory=vykar
 Environment=XDG_CACHE_HOME=/var/cache XDG_CONFIG_HOME=/var/lib
 
+# Secrets from the host's credential store, decrypted by systemd into
+# $CREDENTIALS_DIRECTORY since the image has no tools to do it. Missing ones are
+# skipped. See README.md for how to point the config at them.
+ImportCredential=vykar.env
+ImportCredential=vykar.passphrase
+
 [Install]
 WantedBy=multi-user.target

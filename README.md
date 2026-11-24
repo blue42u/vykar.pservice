@@ -180,10 +180,48 @@ Mode=0444
 InstancesMax=2
 ```
 
+### Secrets
+
+The image has no `systemd-creds` or shell, so secrets come in as systemd
+credentials: the service imports `vykar.env` and `vykar.passphrase` from the
+host's credential store, and systemd decrypts them into the service's
+`$CREDENTIALS_DIRECTORY` before vykar starts. Missing credentials are skipped.
+
+`vykar.env` holds `KEY=value` lines, which the config reads with `env_file` and
+uses through `${KEY}` placeholders. Store it encrypted, in `/etc/credstore.encrypted/`
+for the system instance or `~/.config/credstore.encrypted/` for a user instance
+(user credential stores need systemd 258 or newer):
+
+```sh
+printf 'VYKAR_PASSPHRASE=correct-horse-battery-staple\n' \
+    | sudo systemd-creds encrypt --name=vykar.env - /etc/credstore.encrypted/vykar.env
+# or, for a user instance:
+printf 'VYKAR_PASSPHRASE=correct-horse-battery-staple\n' \
+    | systemd-creds encrypt --user --name=vykar.env - ~/.config/credstore.encrypted/vykar.env
+```
+
+```yaml
+# system: /etc/vykar/config.yaml
+env_file: /run/credentials/vykar.service/vykar.env
+# user: ~/.config/vykar/config.yaml, with your numeric UID
+# env_file: /run/user/1000/credentials/vykar.service/vykar.env
+
+encryption:
+  passphrase: "${VYKAR_PASSPHRASE}"
+```
+
+vykar does not expand variables in the `env_file` path itself, so the user
+instance has to spell out its UID.
+
+`vykar.passphrase` is reserved for the bare passphrase, without the
+`VYKAR_PASSPHRASE=` wrapping. vykar does not read it yet, so use `vykar.env`
+for now.
+
 Limitations compared to the sysext:
 
 - There is no shell or other tools in the image, so `hooks`, `command_dumps`
-  and `passcommand` can't work. Use `passphrase` or `VYKAR_PASSPHRASE` instead.
+  and `passcommand` can't work. Supply secrets as credentials (see
+  [Secrets](#secrets)), or use `passphrase` or `VYKAR_PASSPHRASE`.
 - No `ExecReload=`; reload the config with `systemctl [--user] kill -s HUP vykar`.
 - User-scope portable services need a recent systemd with `systemd-portabled`,
   `systemd-mountfsd` and `systemd-nsresourced` available to users.

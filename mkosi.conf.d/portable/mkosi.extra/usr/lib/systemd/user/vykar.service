@@ -15,5 +15,11 @@ BindReadOnlyPaths=/etc
 BindPaths=-/home
 BindPaths=/var
 
+# Secrets from the host's credential store, decrypted by systemd into
+# $CREDENTIALS_DIRECTORY since the image has no tools to do it. Missing ones are
+# skipped. See README.md for how to point the config at them.
+ImportCredential=vykar.env
+ImportCredential=vykar.passphrase
+
 [Install]
 WantedBy=default.target
